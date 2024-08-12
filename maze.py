@@ -36,7 +36,7 @@ class Maze():
 
     def draw_cell(self, i, j):
         self.cells[i][j].draw()
-        self.animate()
+        #self.animate()
 
     def animate(self):
         self.window.redraw()
@@ -104,9 +104,84 @@ class Maze():
             output.append((i,j+1))
 
         return output
-    
-    
-    def solve_dfs_i(self, reverse = False):
+
+
+
+
+    def retrace_history(self, visited, current):
+        output = [current]
+        while current != (0,0):
+            current = visited[current]
+            output.append(current)
+        return output
+
+    def solve_a_star(self):
+        start = (0,0)
+        goal = (self.num_rows-1,self.num_cols-1)
+        visited = {}
+        all_lines = []
+        
+        
+        # element looks like [(current), (history), *value function*]
+        to_visit = [(start,None,(self.num_rows + self.num_cols -2))]
+        current = None
+        while to_visit != []:
+            data = to_visit.pop(0)
+            history = data[1]
+
+            #Check here if we've back tracked
+            if (visited != {} and history == current):
+                    path_ = self.retrace_history(visited, history)
+
+                    
+                    for i, j in visited.items():
+                        c1 = self.cells[i[0]][i[1]]
+                        c2 = self.cells[j[0]][j[1]]
+                        c1.draw_move(c2,True)
+                    
+                    for i in range(1,len(path_)):
+                        c1 = self.cells[path_[i][0]][path_[i][1]]
+                        c2 = self.cells[path_[i-1][0]][path_[i-1][1]]
+                        c1.draw_move(c2)
+                    
+            current = data[0]
+
+            if history and (current not in visited.keys()) :
+                a = history
+                current_cell = self.cells[current[0]][current[1]]
+                adjacent_cell = self.cells[a[0]][a[1]]
+                
+                current_cell.draw_move(adjacent_cell)
+                self.animate()
+
+                if current == (self.num_rows-1,self.num_cols-1):
+                    return
+                
+                visited[current] = history
+
+            if current == goal:
+                return
+            
+            adjacents = list(filter(lambda x: x not in visited.keys(), self.check_adjacent(current[0],current[1])))
+            for a in adjacents:
+                if a != history:
+                    for a in adjacents:
+                        if a[0] > current[0] and not self.cells[a[0]][a[1]].has_left:
+                            to_visit.append((a,current,self.num_rows + self.num_cols - (2 +a[0]+a[1])))
+                        elif a[1] > current[1] and not self.cells[a[0]][a[1]].has_top:
+                            to_visit.append((a,current,self.num_rows + self.num_cols - (2 +a[0]+a[1])))
+                        elif a[0] < current[0] and not self.cells[a[0]][a[1]].has_right:
+                            to_visit.append((a,current,self.num_rows + self.num_cols - (2 +a[0]+a[1])))
+                        elif a[1] < current[1] and not self.cells[a[0]][a[1]].has_bottom:
+                            to_visit.append((a,current,self.num_rows + self.num_cols - (2 +a[0]+a[1])))
+                    
+            
+            to_visit = sorted(to_visit,key=lambda x: x[2])
+            
+
+
+
+    def solve_dfs_i(self):
         visited = []
         to_visit = [((0,0),None)]
         red_line = []
