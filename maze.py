@@ -1,4 +1,4 @@
-from drawing import Line, Point, Cell
+from drawing import Line, Point, Cell,calc_center
 import time
 import random
 
@@ -18,8 +18,7 @@ class Maze():
 
         self.create_cells()
         self.break_entrance_and_exit()
-        self.break_walls_i()
-    
+        
     def create_cells(self):
         self.cells = [[None] * self.num_cols for x in range(0,self.num_rows)]
 
@@ -61,7 +60,6 @@ class Maze():
             history = curr[1]
             
             adjacents = list(filter(lambda x: x not in visited, self.check_adjacent(current[0],current[1])))
-            print(adjacents)
             
             if len(adjacents) != 0:
                 random.shuffle(adjacents)
@@ -107,10 +105,10 @@ class Maze():
 
         return output
     
-    """
-    def solve_i(self, reverse = False):
+    
+    def solve_dfs_i(self, reverse = False):
         visited = []
-        to_visit = [(0,0)]
+        to_visit = [((0,0),None)]
         red_line = []
 
         while to_visit != []:
@@ -118,14 +116,32 @@ class Maze():
             curr = to_visit.pop()
             current = curr[0]
             history = curr[1]
+
+            #Check here if we've back tracked
+            if history and red_line != []:
+                if history != red_line[-1]:
+                    #find index of where history is
+                    start = red_line.index(history)
+                    for i in range(start+1,len(red_line)):
+                        c1 = self.cells[red_line[i][0]][red_line[i][1]]
+                        c2 = self.cells[red_line[i-1][0]][red_line[i-1][1]]
+                        c1.draw_move(c2,True)
+                    red_line = red_line[:start+1]
+            #if we've backtracked then gray out the wrong explored path
             
             adjacents = list(filter(lambda x: x not in visited, self.check_adjacent(current[0],current[1])))
-            print(adjacents)
             
+            #Only adds path if there isn't a wall in the way
             if len(adjacents) != 0:
-                random.shuffle(adjacents)
                 for a in adjacents:
-                    to_visit.append((a,current))
+                    if a[0] > current[0] and not self.cells[a[0]][a[1]].has_left:
+                        to_visit.append((a,current))
+                    elif a[1] > current[1] and not self.cells[a[0]][a[1]].has_top:
+                        to_visit.append((a,current))
+                    elif a[0] < current[0] and not self.cells[a[0]][a[1]].has_right:
+                        to_visit.append((a,current))
+                    elif a[1] < current[1] and not self.cells[a[0]][a[1]].has_bottom:
+                        to_visit.append((a,current))
 
             #figure out which adjacent a is
             #remove the walls from both
@@ -133,22 +149,13 @@ class Maze():
                 a = history
                 current_cell = self.cells[current[0]][current[1]]
                 adjacent_cell = self.cells[a[0]][a[1]]
-
-                if a[0] > current[0]:
-                    current_cell.has_right = False
-                    adjacent_cell.has_left = False
-                elif a[1] > current[1]:
-                    current_cell.has_bottom = False
-                    adjacent_cell.has_top = False
-                elif a[0] < current[0]:
-                    current_cell.has_left = False
-                    adjacent_cell.has_right = False
-                elif a[1] < current[1]:
-                    current_cell.has_top = False
-                    adjacent_cell.has_bottom = False
                 
-                self.draw_cell(current[0],current[1])
-                self.draw_cell(a[0],a[1])
+                current_cell.draw_move(adjacent_cell)
+                self.animate()
 
+                if current == (self.num_rows-1,self.num_cols-1):
+                    return
+                
                 visited.append(current)
-        """
+                red_line.append(current)
+    
